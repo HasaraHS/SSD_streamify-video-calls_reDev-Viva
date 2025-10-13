@@ -38,7 +38,7 @@ const OnboardingPage = () => {
   };
 
   const handleRandomAvatar = () => {
-    const idx = Math.floor(Math.random() * 100) + 1; // 1-100 included
+    const idx = Math.floor(Math.random() * 100) + 1; 
     const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
     setFormState({ ...formState, profilePic: randomAvatar });

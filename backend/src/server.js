@@ -22,7 +22,8 @@ const __dirname = path.resolve();
 app.use(
   cors({
     origin: "http://localhost:5173",
-    credentials: true, // allow frontend to send cookies
+    // allow frontend to send cookies
+    credentials: true, 
   })
 );
 
@@ -35,7 +36,7 @@ app.use(
     secret: process.env.SESSION_SECRET || "keyboard cat",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }, // ✅ set secure:true in prod with HTTPS
+    cookie: { secure: false }, 
   })
 );
 

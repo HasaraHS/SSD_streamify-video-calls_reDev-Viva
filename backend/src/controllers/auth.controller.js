@@ -121,7 +121,7 @@ export async function login(req, res) {
 
 // ----------------------- LOGOUT -----------------------
 export function logout(req, res) {
-  // Clear the JWT cookie with the same options used when setting it
+  // Clear the JWT cookie with the same options used when setting it     // Inadequate Session Management fix
   res.clearCookie("jwt", {
     httpOnly: true,
     sameSite: "strict",

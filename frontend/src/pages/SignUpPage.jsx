@@ -1,48 +1,47 @@
 import { useState } from "react";
 import { ShipWheelIcon } from "lucide-react";
-import { Link } from "react-router";
-import {toast} from "react-hot-toast";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import useSignUp from "../hooks/useSignUp";
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
 const SignUpPage = () => {
+  const navigate = useNavigate();
   const [signupData, setSignupData] = useState({
     fullName: "",
     email: "",
     password: "",
   });
 
-  // This is how we did it at first, without using our custom hook
-  // const queryClient = useQueryClient();
-  // const {
-  //   mutate: signupMutation,
-  //   isPending,
-  //   error,
-  // } = useMutation({
-  //   mutationFn: signup,
-  //   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-  // });
-
-  // This is how we did it using our custom hook - optimized version
   const { isPending, error, signupMutation } = useSignUp();
 
   const handleSignup = (e) => {
     e.preventDefault();
+    const { email, password } = signupData;
 
-    const {email, password} = signupData;
-
-    //client side validation
-    if(!/\S+@\S+\.\S+/.test(email)) {
+    // Client-side validation
+    if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please provide a valid email address");
       return;
     }
-
-    if(!passwordPattern.test(password)) {
-      toast.error("Password must be at least 8 chars, include uppercase, lowercase, number & special character");
+    if (!passwordPattern.test(password)) {
+      toast.error(
+        "Password must be at least 8 chars, include uppercase, lowercase, number & special character"
+      );
       return;
     }
-    signupMutation(signupData);
+
+    // Call signup mutation with onSuccess navigation
+    signupMutation(signupData, {
+      onSuccess: () => {
+        // Navigate to onboarding after signup
+        navigate("/onboarding");
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || "Signup failed");
+      },
+    });
   };
 
   return (
@@ -64,7 +63,7 @@ const SignUpPage = () => {
           {/* ERROR MESSAGE IF ANY */}
           {error && (
             <div className="alert alert-error mb-4">
-              <span>{error.response.data.message}</span>
+              <span>{error.response?.data?.message}</span>
             </div>
           )}
 
@@ -89,10 +88,13 @@ const SignUpPage = () => {
                       placeholder="John Doe"
                       className="input input-bordered w-full"
                       value={signupData.fullName}
-                      onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, fullName: e.target.value })
+                      }
                       required
                     />
                   </div>
+
                   {/* EMAIL */}
                   <div className="form-control w-full">
                     <label className="label">
@@ -103,10 +105,13 @@ const SignUpPage = () => {
                       placeholder="john@gmail.com"
                       className="input input-bordered w-full"
                       value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, email: e.target.value })
+                      }
                       required
                     />
                   </div>
+
                   {/* PASSWORD */}
                   <div className="form-control w-full">
                     <label className="label">
@@ -117,7 +122,9 @@ const SignUpPage = () => {
                       placeholder="********"
                       className="input input-bordered w-full"
                       value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, password: e.target.value })
+                      }
                       required
                     />
                     <p className="text-xs opacity-70 mt-1">
@@ -137,7 +144,7 @@ const SignUpPage = () => {
                   </div>
                 </div>
 
-                <button className="btn btn-primary w-full" type="submit">
+                <button className="btn btn-primary w-full" type="submit" disabled={isPending}>
                   {isPending ? (
                     <>
                       <span className="loading loading-spinner loading-xs"></span>
@@ -148,23 +155,23 @@ const SignUpPage = () => {
                   )}
                 </button>
 
-                 <hr />
-                  <div className="flex justify-center">
-                    <p className="text-sm opacity-70">or </p>
-                  </div>
+                <hr />
+                <div className="flex justify-center">
+                  <p className="text-sm opacity-70">or </p>
+                </div>
 
-                  <div className="flex gap-4">
-                     <button 
-                       onClick={() => {
-                        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
-                       }}
-
-                       className="btn btn-outline w-full flex items-center justify-center gap-2">
-                      <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
-                      sign up with Google
-                       </button>
-                  </div>
-
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
+                    }}
+                    className="btn btn-outline w-full flex items-center justify-center gap-2"
+                  >
+                    <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
+                    Sign up with Google
+                  </button>
+                </div>
 
                 <div className="text-center mt-4">
                   <p className="text-sm">
@@ -182,13 +189,18 @@ const SignUpPage = () => {
         {/* SIGNUP FORM - RIGHT SIDE */}
         <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
           <div className="max-w-md p-8">
-            {/* Illustration */}
             <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
+              <img
+                src="/i.png"
+                alt="Language connection illustration"
+                className="w-full h-full"
+              />
             </div>
 
             <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
+              <h2 className="text-xl font-semibold">
+                Connect with language partners worldwide
+              </h2>
               <p className="opacity-70">
                 Practice conversations, make friends, and improve your language skills together
               </p>

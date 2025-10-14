@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { ShipWheelIcon } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router-dom";
 import useLogin from "../hooks/useLogin";
-import {toast} from "react-hot-toast";
-
+import { toast } from "react-hot-toast";
 
 const LoginPage = () => {
-  const [loginData, setLoginData] = useState({
-    email: "",
-    password: "",
-  });
+  const navigate = useNavigate();
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
 
-  // This is how we did it at first, without using our custom hook
+   // This is how we did it at first, without using our custom hook
   // const queryClient = useQueryClient();
   // const {
   //   mutate: loginMutation,
@@ -25,24 +22,35 @@ const LoginPage = () => {
   // This is how we did it using our custom hook - optimized version
   const { isPending, error, loginMutation } = useLogin();
 
-   const passwordPattern =/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordPattern =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
   const handleLogin = (e) => {
     e.preventDefault();
 
-    //email validation
-     if (!/\S+@\S+\.\S+/.test(loginData.email)) {
+    // Email validation
+    if (!/\S+@\S+\.\S+/.test(loginData.email)) {
       toast.error("Invalid email format");
       return;
     }
 
-    //Password validation
+    // Password validation
     if (!passwordPattern.test(loginData.password)) {
-      toast.error("Use a stronger password (upper, lower, number, special)");
+      toast.error(
+        "Use a stronger password (upper, lower, number, special)"
+      );
       return;
     }
 
-    loginMutation(loginData);
+    // Call login mutation with onSuccess navigation
+    loginMutation(loginData, {
+      onSuccess: (data) => {
+        navigate(data.user.isOnboarded ? "/" : "/onboarding");
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || "Login failed");
+      },
+    });
   };
 
   return (
@@ -56,7 +64,7 @@ const LoginPage = () => {
           {/* LOGO */}
           <div className="mb-4 flex items-center justify-start gap-2">
             <ShipWheelIcon className="size-9 text-primary" />
-            <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
+            <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
               Streamify
             </span>
           </div>
@@ -64,7 +72,7 @@ const LoginPage = () => {
           {/* ERROR MESSAGE DISPLAY */}
           {error && (
             <div className="alert alert-error mb-4">
-              <span>{error.response.data.message}</span>
+              <span>{error.response?.data?.message}</span>
             </div>
           )}
 
@@ -88,7 +96,9 @@ const LoginPage = () => {
                       placeholder="hello@example.com"
                       className="input input-bordered w-full"
                       value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      onChange={(e) =>
+                        setLoginData({ ...loginData, email: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -102,12 +112,21 @@ const LoginPage = () => {
                       placeholder="••••••••"
                       className="input input-bordered w-full"
                       value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      onChange={(e) =>
+                        setLoginData({
+                          ...loginData,
+                          password: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-primary w-full" disabled={isPending}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full"
+                    disabled={isPending}
+                  >
                     {isPending ? (
                       <>
                         <span className="loading loading-spinner loading-xs"></span>
@@ -124,21 +143,29 @@ const LoginPage = () => {
                   </div>
 
                   <div className="flex gap-4">
-                     <button 
-                       onClick={() => {
+                    <button
+                      type="button"
+                      onClick={() => {
                         window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
-                       }}
-
-                       className="btn btn-outline w-full flex items-center justify-center gap-2">
-                      <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
-                      sign in with Google
-                       </button>
+                      }}
+                      className="btn btn-outline w-full flex items-center justify-center gap-2"
+                    >
+                      <img
+                        src="/google.png"
+                        alt="Google Logo"
+                        className="w-5 h-5"
+                      />
+                      Sign in with Google
+                    </button>
                   </div>
 
                   <div className="text-center mt-4">
                     <p className="text-sm">
                       Don't have an account?{" "}
-                      <Link to="/signup" className="text-primary hover:underline">
+                      <Link
+                        to="/signup"
+                        className="text-primary hover:underline"
+                      >
                         Create one
                       </Link>
                     </p>
@@ -154,13 +181,20 @@ const LoginPage = () => {
           <div className="max-w-md p-8">
             {/* Illustration */}
             <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
+              <img
+                src="/i.png"
+                alt="Language connection illustration"
+                className="w-full h-full"
+              />
             </div>
 
             <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
+              <h2 className="text-xl font-semibold">
+                Connect with language partners worldwide
+              </h2>
               <p className="opacity-70">
-                Practice conversations, make friends, and improve your language skills together
+                Practice conversations, make friends, and improve your
+                language skills together
               </p>
             </div>
           </div>
@@ -169,4 +203,5 @@ const LoginPage = () => {
     </div>
   );
 };
+
 export default LoginPage;

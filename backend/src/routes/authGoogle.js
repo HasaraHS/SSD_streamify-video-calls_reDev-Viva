@@ -3,6 +3,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { oauthLimiter } from "../middleware/rateLimiter.middleware.js";
 
 const router = express.Router();
 
@@ -55,10 +56,14 @@ passport.deserializeUser((obj, done) => done(null, obj));
 //Route to initiate Google OAuth
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
+  oauthLimiter,
+  (req, res, next) => {
+    if (res.headersSent) return;
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  }
 );
 
-//Google OAuth callback route
+//Google OAuth callback route (No rate limiter here - Google calls this, not the user)
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -66,31 +71,21 @@ router.get(
     session: false,
   }), // disable session
   (req, res) => {
-    // console.log("=== Google Callback Hit ===");
-
     if (!req.user) {
-      //console.log("No user found after OAuth");
       return res.redirect(`${FRONTEND_URL}/login`);
     }
 
-    // console.log("User found or created:", req.user);
-
-    //Redirect with user infomation token or session
-    //Generate JWT token
     const token = jwt.sign({ userId: req.user._id }, JWT_SECRET_KEY, {
       expiresIn: "7d",
     });
-    // console.log("JWT token generated:", token);
 
-    // set cookie
     res.cookie("jwt", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true, // prevent XSS attacks,
-      sameSite: "strict", // prevent CSRF attacks
+      httpOnly: true,
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
     });
-    //Redirect to frontend
-    // console.log(`Redirecting to: ${FRONTEND_URL}/oauth-success`);
+    
     res.redirect(`${FRONTEND_URL}/oauth-success`);
   }
 );

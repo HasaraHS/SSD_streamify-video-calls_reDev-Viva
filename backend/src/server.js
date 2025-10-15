@@ -19,6 +19,9 @@ const PORT = process.env.PORT;
 
 const __dirname = path.resolve();
 
+// Trust proxy - Required for rate limiting to work correctly
+app.set('trust proxy', 1);
+
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -48,22 +51,17 @@ app.use(passport.session());
 
 // CSRF protection middleware
 const csrfProtection = csrf({ cookie: true });
-app.use(csrfProtection);
-
-
-
 
 // Route for frontend to fetch CSRF token
-app.get("/api/csrf-token", (req, res) => {
+app.get("/api/csrf-token", csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
-
-
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/chat", chatRoutes);
+// Routes - Apply rate limiting in routes, CSRF applied per route
+// Auth routes have their own rate limiting middleware
+app.use("/api/auth", csrfProtection, authRoutes);
+app.use("/api/users", csrfProtection, userRoutes);
+app.use("/api/chat", csrfProtection, chatRoutes);
 
 // Use the Google authentication routes
 app.use("/auth", authGoogleRouter);

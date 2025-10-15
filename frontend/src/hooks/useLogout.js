@@ -24,7 +24,7 @@ const useLogout = () => {
       // Optionally, you can also clear localStorage if you store any auth data there
       // localStorage.removeItem('authData');
     },
-    onError: (error) => {
+    onError: (error) => {                                                      // Inadequate Session Management fix
       console.error("Logout failed:", error);
       // Even if logout fails on server, clear client state and navigate
       queryClient.clear();

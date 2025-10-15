@@ -3,11 +3,13 @@ import { login, logout, onboard, signup } from "../controllers/auth.controller.j
 import { protectRoute } from "../middleware/auth.middleware.js";
 import validateRequest from  "../middleware/auth.validateRequest.js";
 import { signupSchema, loginSchema } from "../validators/auth.validator.js";
+import { authLimiter } from "../middleware/rateLimiter.middleware.js";
 
 const router = express.Router();
 
-router.post("/signup", validateRequest(signupSchema), signup);
-router.post("/login", validateRequest(loginSchema), login);
+// Apply rate limiting to authentication endpoints to prevent brute-force attacks
+router.post("/signup", authLimiter, validateRequest(signupSchema), signup);
+router.post("/login", authLimiter, validateRequest(loginSchema), login);
 router.post("/logout", logout);
 
 router.post("/onboarding", protectRoute, onboard);

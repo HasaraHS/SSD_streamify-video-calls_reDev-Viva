@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
       minlength: [8, "Password must be at least 8 characters long"],
       validate : {
         validator: function(v) {
-          if(!v) return true; // allow empty password for the google users
+          if(!v) return true; 
            return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(v);
       },
       message: 
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema(
   googleId: {
     type: String,
     unique: true,
-    sparse: true, // allow null but unique when provided
+    sparse: true, 
   },
     bio: {
       type: String,

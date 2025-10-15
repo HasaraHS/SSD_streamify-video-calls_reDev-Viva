@@ -82,10 +82,16 @@ export async function login(req, res) {
 
     if (!email || !password) return res.status(400).json({ message: "All fields are required" });
     if (!validator.isEmail(email)) return res.status(400).json({ message: "Invalid email format" });
+    
 
-    // Fetch user safely
-    const user = await User.findOne({ email }).lean();
-    if (!user || user.password !== password) {
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Use the model method for bcrypt comparison
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -115,7 +121,7 @@ export async function login(req, res) {
 
 // ----------------------- LOGOUT -----------------------
 export function logout(req, res) {
-  // Clear the JWT cookie with the same options used when setting it
+  // Clear the JWT cookie with the same options used when setting it     // Inadequate Session Management fix
   res.clearCookie("jwt", {
     httpOnly: true,
     sameSite: "strict",

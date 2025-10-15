@@ -1,49 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShipWheelIcon } from "lucide-react";
-import { Link } from "react-router";
-import {toast} from "react-hot-toast";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import useSignUp from "../hooks/useSignUp";
 import DOMPurify from 'dompurify';
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
 const SignUpPage = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [signupData, setSignupData] = useState({
     fullName: "",
     email: "",
     password: "",
   });
+  const [rateLimitError, setRateLimitError] = useState("");
+  
+  // Check for error in URL params (from OAuth rate limiting)
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setRateLimitError(errorParam);
+      // Remove error param from URL
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
-  // This is how we did it at first, without using our custom hook
-  // const queryClient = useQueryClient();
-  // const {
-  //   mutate: signupMutation,
-  //   isPending,
-  //   error,
-  // } = useMutation({
-  //   mutationFn: signup,
-  //   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-  // });
-
-  // This is how we did it using our custom hook - optimized version
   const { isPending, error, signupMutation } = useSignUp();
 
   const handleSignup = (e) => {
     e.preventDefault();
+    const { email, password } = signupData;
 
-    const {email, password} = signupData;
-
-    //client side validation
-    if(!/\S+@\S+\.\S+/.test(email)) {
+    // Client-side validation
+    if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please provide a valid email address");
       return;
     }
-
-    if(!passwordPattern.test(password)) {
-      toast.error("Password must be at least 8 chars, include uppercase, lowercase, number & special character");
+    if (!passwordPattern.test(password)) {
+      toast.error(
+        "Password must be at least 8 chars, include uppercase, lowercase, number & special character"
+      );
       return;
     }
-    signupMutation(signupData);
+
+    // Call signup mutation with onSuccess navigation
+    signupMutation(signupData, {
+      onSuccess: () => {
+        // Navigate to onboarding after signup
+        navigate("/onboarding");
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || "Signup failed");
+      },
+    });
   };
 
   return (
@@ -62,10 +74,27 @@ const SignUpPage = () => {
             </span>
           </div>
 
-          {/* ERROR MESSAGE IF ANY */}
-          {error && (
+          {/* RATE LIMIT ERROR MESSAGE - Yellow Warning Box */}
+          {rateLimitError && (
+            <div className="bg-yellow-400 border border-yellow-500 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-black flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h3 className="text-black font-bold text-lg mb-1">Too Many Attempts</h3>
+                  <p className="text-black text-sm">{rateLimitError}</p>
+                  <p className="text-black text-sm mt-1">Try again in 15 minutes</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* REGULAR ERROR MESSAGE IF ANY */}
+          {error && !rateLimitError && (
             <div className="alert alert-error mb-4">
               <span>{DOMPurify.sanitize(error.response?.data?.message || "Unknown error")}</span>
+              <span>{error.response?.data?.message}</span>
             </div>
           )}
 
@@ -90,10 +119,13 @@ const SignUpPage = () => {
                       placeholder="John Doe"
                       className="input input-bordered w-full"
                       value={signupData.fullName}
-                      onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, fullName: e.target.value })
+                      }
                       required
                     />
                   </div>
+
                   {/* EMAIL */}
                   <div className="form-control w-full">
                     <label className="label">
@@ -104,10 +136,13 @@ const SignUpPage = () => {
                       placeholder="john@gmail.com"
                       className="input input-bordered w-full"
                       value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, email: e.target.value })
+                      }
                       required
                     />
                   </div>
+
                   {/* PASSWORD */}
                   <div className="form-control w-full">
                     <label className="label">
@@ -118,7 +153,9 @@ const SignUpPage = () => {
                       placeholder="********"
                       className="input input-bordered w-full"
                       value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, password: e.target.value })
+                      }
                       required
                     />
                     <p className="text-xs opacity-70 mt-1">
@@ -138,7 +175,7 @@ const SignUpPage = () => {
                   </div>
                 </div>
 
-                <button className="btn btn-primary w-full" type="submit">
+                <button className="btn btn-primary w-full" type="submit" disabled={isPending}>
                   {isPending ? (
                     <>
                       <span className="loading loading-spinner loading-xs"></span>
@@ -149,23 +186,23 @@ const SignUpPage = () => {
                   )}
                 </button>
 
-                 <hr />
-                  <div className="flex justify-center">
-                    <p className="text-sm opacity-70">or </p>
-                  </div>
+                <hr />
+                <div className="flex justify-center">
+                  <p className="text-sm opacity-70">or </p>
+                </div>
 
-                  <div className="flex gap-4">
-                     <button 
-                       onClick={() => {
-                        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
-                       }}
-
-                       className="btn btn-outline w-full flex items-center justify-center gap-2">
-                      <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
-                      sign up with Google
-                       </button>
-                  </div>
-
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
+                    }}
+                    className="btn btn-outline w-full flex items-center justify-center gap-2"
+                  >
+                    <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
+                    Sign up with Google
+                  </button>
+                </div>
 
                 <div className="text-center mt-4">
                   <p className="text-sm">
@@ -183,13 +220,18 @@ const SignUpPage = () => {
         {/* SIGNUP FORM - RIGHT SIDE */}
         <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
           <div className="max-w-md p-8">
-            {/* Illustration */}
             <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
+              <img
+                src="/i.png"
+                alt="Language connection illustration"
+                className="w-full h-full"
+              />
             </div>
 
             <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
+              <h2 className="text-xl font-semibold">
+                Connect with language partners worldwide
+              </h2>
               <p className="opacity-70">
                 Practice conversations, make friends, and improve your language skills together
               </p>

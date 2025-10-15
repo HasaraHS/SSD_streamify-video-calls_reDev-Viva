@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { ShipWheelIcon } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import useLogin from "../hooks/useLogin";
+import {toast} from "react-hot-toast";
+import DOMPurify from 'dompurify';
+
 import { toast } from "react-hot-toast";
 
 const LoginPage = () => {
@@ -82,6 +85,9 @@ const LoginPage = () => {
             </span>
           </div>
 
+          {error && (
+            <div className="alert alert-error mb-4">
+              <span>{DOMPurify.sanitize(error.response?.data?.message || "Unknown error")}</span>
           {/* RATE LIMIT ERROR MESSAGE - Yellow Warning Box */}
           {rateLimitError && (
             <div className="bg-yellow-400 border border-yellow-500 rounded-lg p-4 mb-4">

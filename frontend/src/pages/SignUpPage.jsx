@@ -3,6 +3,7 @@ import { ShipWheelIcon } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import useSignUp from "../hooks/useSignUp";
+import DOMPurify from 'dompurify';
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
@@ -92,6 +93,7 @@ const SignUpPage = () => {
           {/* REGULAR ERROR MESSAGE IF ANY */}
           {error && !rateLimitError && (
             <div className="alert alert-error mb-4">
+              <span>{DOMPurify.sanitize(error.response?.data?.message || "Unknown error")}</span>
               <span>{error.response?.data?.message}</span>
             </div>
           )}

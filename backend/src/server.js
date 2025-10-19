@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import chatRoutes from "./routes/chat.route.js";
 import authGoogleRouter from "./routes/authGoogle.js";
+import { sanitizeValues } from "./middleware/sanitizeValues.js";
 
 import { connectDB } from "./lib/db.js";
 
@@ -37,8 +38,13 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-//removes any keys begining with $ or containing 
+
+//removes  malicious keys.
 app.use(mongoSanitize());
+
+//checks values starting with $
+app.use(sanitizeValues);
+
 
 // Session middleware for passport
 app.use(

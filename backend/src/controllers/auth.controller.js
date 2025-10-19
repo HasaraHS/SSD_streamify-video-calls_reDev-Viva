@@ -35,7 +35,7 @@ export async function signup(req, res) {
     const newUser = await User.create({
       email,
       fullName,
-      password, // plain text
+      password, 
       profilePic: randomAvatar,
     });
 

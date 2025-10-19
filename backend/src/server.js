@@ -17,6 +17,10 @@ import { connectDB } from "./lib/db.js";
 const app = express();
 const PORT = process.env.PORT;
 
+
+//reqiure mongo sanitization package
+import mongoSanitize from "express-mongo-sanitize";
+
 const __dirname = path.resolve();
 
 // Trust proxy - Required for rate limiting to work correctly
@@ -32,6 +36,9 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+
+//removes any keys begining with $ or containing 
+app.use(mongoSanitize());
 
 // Session middleware for passport
 app.use(

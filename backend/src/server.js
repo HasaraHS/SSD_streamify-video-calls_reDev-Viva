@@ -39,7 +39,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 
-//removes  malicious keys.
+//removes malicious keys($gt, $lt, $gte, $lte)
 app.use(mongoSanitize());
 
 //checks values starting with $

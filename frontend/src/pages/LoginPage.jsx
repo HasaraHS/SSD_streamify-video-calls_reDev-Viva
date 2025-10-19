@@ -2,68 +2,57 @@ import { useState, useEffect } from "react";
 import { ShipWheelIcon } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import useLogin from "../hooks/useLogin";
-import {toast} from "react-hot-toast";
-import DOMPurify from 'dompurify';
-
+import DOMPurify from "dompurify";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [rateLimitError, setRateLimitError] = useState("");
-  
-  // Check for error in URL params (from OAuth rate limiting)
-  useEffect(() => {
-    const errorParam = searchParams.get('error');
-    if (errorParam) {
-      setRateLimitError(errorParam);
-      // Remove error param from URL
-      searchParams.delete('error');
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  const [formError, setFormError] = useState(""); // unified error state
 
-   // This is how we did it at first, without using our custom hook
-  // const queryClient = useQueryClient();
-  // const {
-  //   mutate: loginMutation,
-  //   isPending,
-  //   error,
-  // } = useMutation({
-  //   mutationFn: login,
-  //   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-  // });
-
-  // This is how we did it using our custom hook - optimized version
-  const { isPending, error, loginMutation } = useLogin();
+  const { isPending, loginMutation } = useLogin();
 
   const passwordPattern =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
+  // Catch rate-limit error from OAuth redirect
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setRateLimitError(errorParam);
+      searchParams.delete("error");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const handleLogin = (e) => {
     e.preventDefault();
+    setFormError(""); // clear old errors
 
     // Email validation
     if (!/\S+@\S+\.\S+/.test(loginData.email)) {
-      toast.error("Invalid email format");
+      setFormError("Please provide a valid email address");
       return;
     }
 
     // Password validation
     if (!passwordPattern.test(loginData.password)) {
-      toast.error(
-        "Use a stronger password (upper, lower, number, special)"
+      setFormError(
+        "Password must include uppercase, lowercase, number & special character"
       );
       return;
     }
 
-    // Call login mutation with onSuccess navigation
+    // Call login mutation
     loginMutation(loginData, {
       onSuccess: (data) => {
         navigate(data.user.isOnboarded ? "/" : "/onboarding");
       },
       onError: (err) => {
-        toast.error(err?.response?.data?.message || "Login failed");
+        setFormError(
+          DOMPurify.sanitize(err?.response?.data?.message || "Login failed")
+        );
       },
     });
   };
@@ -74,7 +63,7 @@ const LoginPage = () => {
       data-theme="forest"
     >
       <div className="border border-primary/25 flex flex-col lg:flex-row w-full max-w-5xl mx-auto bg-base-100 rounded-xl shadow-lg overflow-hidden">
-        {/* LOGIN FORM SECTION */}
+        {/* LEFT SECTION - LOGIN FORM */}
         <div className="w-full lg:w-1/2 p-4 sm:p-8 flex flex-col">
           {/* LOGO */}
           <div className="mb-4 flex items-center justify-start gap-2">
@@ -84,138 +73,152 @@ const LoginPage = () => {
             </span>
           </div>
 
-          {error && (
-            <div className="alert alert-error mb-4">
-              <span>{DOMPurify.sanitize(error.response?.data?.message || "Unknown error")}</span>
-              </div>
-          )}
-          {/* RATE LIMIT ERROR MESSAGE - Yellow Warning Box */}
+          {/* RATE LIMIT ERROR */}
           {rateLimitError && (
             <div className="bg-yellow-400 border border-yellow-500 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-black flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <svg
+                  className="w-6 h-6 text-black flex-shrink-0 mt-0.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <div>
-                  <h3 className="text-black font-bold text-lg mb-1">Too Many Attempts</h3>
+                  <h3 className="text-black font-bold text-lg mb-1">
+                    Too Many Attempts
+                  </h3>
                   <p className="text-black text-sm">{rateLimitError}</p>
-                  
+                  <p className="text-black text-sm mt-1">Try again in 15 minutes</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* REGULAR ERROR MESSAGE DISPLAY */}
-          {error && !rateLimitError && (
-            <div className="alert alert-error mb-4">
-              <span>{error.response?.data?.message}</span>
+          {/* FORM ERROR - RED BOX */}
+          {formError && !rateLimitError && (
+            <div className="bg-red-500/10 border border-red-200 rounded-lg p-4 mb-4 text-red-500">
+              <div className="flex items-start gap-3">
+                <svg
+                  className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">Login Error</h3>
+                  <p className="text-sm">{formError}</p>
+                </div>
+              </div>
             </div>
           )}
 
-          <div className="w-full">
-            <form onSubmit={handleLogin}>
-              <div className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Welcome Back</h2>
-                  <p className="text-sm opacity-70">
-                    Sign in to your account to continue your language journey
+          {/* LOGIN FORM */}
+          <form onSubmit={handleLogin}>
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Welcome Back</h2>
+                <p className="text-sm opacity-70">
+                  Sign in to your account to continue your language journey
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* EMAIL */}
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text">Email</span>
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="hello@example.com"
+                    className="input input-bordered w-full"
+                    value={loginData.email}
+                    onChange={(e) =>
+                      setLoginData({ ...loginData, email: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* PASSWORD */}
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text">Password</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    className="input input-bordered w-full"
+                    value={loginData.password}
+                    onChange={(e) =>
+                      setLoginData({ ...loginData, password: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* LOGIN BUTTON */}
+                <button
+                  type="submit"
+                  className="btn btn-primary w-full"
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </button>
+
+                <hr />
+                <div className="flex justify-center">
+                  <p className="text-sm opacity-70">or</p>
+                </div>
+
+                {/* GOOGLE LOGIN */}
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
+                    }}
+                    className="btn btn-outline w-full flex items-center justify-center gap-2"
+                  >
+                    <img src="/google.png" alt="Google Logo" className="w-5 h-5" />
+                    Sign in with Google
+                  </button>
+                </div>
+
+                {/* SIGNUP LINK */}
+                <div className="text-center mt-4">
+                  <p className="text-sm">
+                    Don't have an account?{" "}
+                    <Link to="/signup" className="text-primary hover:underline">
+                      Create one
+                    </Link>
                   </p>
                 </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="form-control w-full space-y-2">
-                    <label className="label">
-                      <span className="label-text">Email</span>
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="hello@example.com"
-                      className="input input-bordered w-full"
-                      value={loginData.email}
-                      onChange={(e) =>
-                        setLoginData({ ...loginData, email: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-control w-full space-y-2">
-                    <label className="label">
-                      <span className="label-text">Password</span>
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      className="input input-bordered w-full"
-                      value={loginData.password}
-                      onChange={(e) =>
-                        setLoginData({
-                          ...loginData,
-                          password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-full"
-                    disabled={isPending}
-                  >
-                    {isPending ? (
-                      <>
-                        <span className="loading loading-spinner loading-xs"></span>
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </button>
-
-                  <hr />
-                  <div className="flex justify-center">
-                    <p className="text-sm opacity-70">or </p>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
-                      }}
-                      className="btn btn-outline w-full flex items-center justify-center gap-2"
-                    >
-                      <img
-                        src="/google.png"
-                        alt="Google Logo"
-                        className="w-5 h-5"
-                      />
-                      Sign in with Google
-                    </button>
-                  </div>
-
-                  <div className="text-center mt-4">
-                    <p className="text-sm">
-                      Don't have an account?{" "}
-                      <Link
-                        to="/signup"
-                        className="text-primary hover:underline"
-                      >
-                        Create one
-                      </Link>
-                    </p>
-                  </div>
-                </div>
               </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
 
-        {/* IMAGE SECTION */}
+        {/* RIGHT SECTION - IMAGE */}
         <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
           <div className="max-w-md p-8">
-            {/* Illustration */}
             <div className="relative aspect-square max-w-sm mx-auto">
               <img
                 src="/i.png"
@@ -229,8 +232,8 @@ const LoginPage = () => {
                 Connect with language partners worldwide
               </h2>
               <p className="opacity-70">
-                Practice conversations, make friends, and improve your
-                language skills together
+                Practice conversations, make friends, and improve your language
+                skills together
               </p>
             </div>
           </div>

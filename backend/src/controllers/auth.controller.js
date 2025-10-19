@@ -9,18 +9,18 @@ export async function signup(req, res) {
     const { email, password, fullName } = req.body;
 
     // Validate inputs
-    if (!email || !password || !fullName) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
-    }
-    if (typeof fullName !== "string" || fullName.length < 3 || fullName.length > 50) {
-      return res.status(400).json({ message: "Full name must be 3-50 characters" });
-    }
-    if (typeof password !== "string") {
-      return res.status(400).json({ message: "Invalid password" });
-    }
+    // if (!email || !password || !fullName) {
+    //   return res.status(400).json({ message: "All fields are required" });
+    // }
+    // if (!validator.isEmail(email)) {
+    //   return res.status(400).json({ message: "Invalid email format" });
+    // }
+    // if (typeof fullName !== "string" || fullName.length < 3 || fullName.length > 50) {
+    //   return res.status(400).json({ message: "Full name must be 3-50 characters" });
+    // }
+    // if (typeof password !== "string") {
+    //   return res.status(400).json({ message: "Invalid password" });
+    // }
 
     // Check existing user
     const existingUser = await User.findOne({ email }).lean();
